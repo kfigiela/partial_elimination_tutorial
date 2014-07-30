@@ -1,0 +1,64 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath}
+\usepackage[T1]{fontenc}
+\usepackage[utf8x]{inputenc}
+
+\title{How to do partial elimination with BLAS/LAPACK}
+\begin{document}
+\maketitle
+
+\section{Problem statement}
+Lets assume that we have equation system of size $n$. We want to partially eliminate first $m$ variables from the system, so that $k = n - m$ variables may still be not eliminated. What we need to do is to calculate Shur complement of the equation system.
+\begin{equation}
+    \begin{bmatrix}
+    A_{m × m} & B_{m × k} \\
+    C_{k × m} & D_{k × k}
+    \end{bmatrix}_{n × n} x = \begin{bmatrix}
+    E_{m × 1} \\
+    F_{m × 1} 
+    \end{bmatrix}
+\longrightarrow
+    \begin{bmatrix}
+    \boldsymbol{I}_{m × m} & B'_{m × k} \\
+    \boldsymbol{0}_{k × m} & D'_{k × k}
+    \end{bmatrix} x = \begin{bmatrix}
+    E'_{m × 1} \\
+    F'_{m × 1} 
+    \end{bmatrix}
+\end{equation}
+
+\section{Algorithm}
+\begin{align}
+\label{step1}    B' &= A^{-1} \times B \\ 
+\label{step2}    E' &= A^{-1} \times E \\
+\label{step3}    D' &= D - C \times B' \\
+\label{step4}    F' &= F - C \times E'
+\end{align}
+
+
+\section{BLAS/LAPACK implementation}
+
+Let's assume that
+\begin{itemize}
+    \item matrices use Foratran (column-wise) ordering, not the C one (row-wise),
+    \item \textbf{G} is LHS matrix of the system that is composed of submatrices \textbf{A} to \textbf{D},
+    \item \textbf{H} is RHS vector of the system that is composed of subvectors \textbf{E} and \textbf{F},
+    \item \textbf{A} to \textbf{F} are pointers to the begining of the submatrices,
+    \item \textbf{n}, \textbf{m} and \textbf{k} are defined as in introduction,
+    \item we check if operation succeeded after operations that may fail (e.g. LU decomposition),
+    \item the operation will be in-place and will modify input matrix.
+\end{itemize}
+
+\paragraph{Algorithm}
+\begin{enumerate}
+    \item Do the LU decomposition for submatrix A: \\ \texttt{dgetrf(m, m, A, n, ipiv, status)} \\ The row pivot vector returned in \texttt{ipiv} will be needed in next two steps.
+    \item $B = (PLU)^{-1} \times B$: \\ \texttt{dgetrs(NoTrans, m, k, A, n, ipiv, B, n, status)}
+    \item $E = (PLU)^{-1} \times E$: \\ \texttt{dgetrs(NoTrans, m, 1, A, n, ipiv, E, n, status)}
+    \item $D = D - C \times B$: \\ \texttt{dgemm(NoTrans, NoTrans, k, k, m, -1.0, C, n, B, n, 1.0, D, n)}
+    \item $F = F - C \times E$: \\ \texttt{dgemv(NoTrans, k, m, -1.0, C, n, E, 1, 1.0, F, 1)}
+    \item $A = \boldsymbol{I}_{m × m}$ – $A$ is identity matrix
+    \item $C = \boldsymbol{0}_{k × m}$ – $C$ is zero matrix
+\end{enumerate}
+
+\end{document}
+This is never printe
