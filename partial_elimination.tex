@@ -3,7 +3,7 @@
 \usepackage[T1]{fontenc}
 \usepackage[utf8x]{inputenc}
 
-\title{How to do partial elimination with BLAS/LAPACK}
+\title{How to do partial elimination with BLAS and LAPACK}
 \begin{document}
 \maketitle
 
@@ -16,15 +16,15 @@ Lets assume that we have equation system of size $n$. We want to partially elimi
     \end{bmatrix}_{n × n} x = \begin{bmatrix}
     E_{m × 1} \\
     F_{m × 1} 
-    \end{bmatrix}
+    \end{bmatrix}_{n × 1}
 \longrightarrow
     \begin{bmatrix}
     \boldsymbol{I}_{m × m} & B'_{m × k} \\
     \boldsymbol{0}_{k × m} & D'_{k × k}
-    \end{bmatrix} x = \begin{bmatrix}
+    \end{bmatrix}_{n × n} x = \begin{bmatrix}
     E'_{m × 1} \\
     F'_{m × 1} 
-    \end{bmatrix}
+    \end{bmatrix}_{n × 1}
 \end{equation}
 
 \section{Algorithm}
@@ -40,7 +40,7 @@ Lets assume that we have equation system of size $n$. We want to partially elimi
 
 Let's assume that
 \begin{itemize}
-    \item matrices use Foratran (column-wise) ordering, not the C one (row-wise),
+    \item matrices have continuous columns (like in Foratran), which is not standard behavior in C,
     \item \textbf{G} is LHS matrix of the system that is composed of submatrices \textbf{A} to \textbf{D},
     \item \textbf{H} is RHS vector of the system that is composed of subvectors \textbf{E} and \textbf{F},
     \item \textbf{A} to \textbf{F} are pointers to the begining of the submatrices,
@@ -56,9 +56,10 @@ Let's assume that
     \item $E = (PLU)^{-1} \times E$: \\ \texttt{dgetrs(NoTrans, m, 1, A, n, ipiv, E, n, status)}
     \item $D = D - C \times B$: \\ \texttt{dgemm(NoTrans, NoTrans, k, k, m, -1.0, C, n, B, n, 1.0, D, n)}
     \item $F = F - C \times E$: \\ \texttt{dgemv(NoTrans, k, m, -1.0, C, n, E, 1, 1.0, F, 1)}
-    \item $A = \boldsymbol{I}_{m × m}$ – $A$ is identity matrix
-    \item $C = \boldsymbol{0}_{k × m}$ – $C$ is zero matrix
+    \item\label{diag} $A = \boldsymbol{I}_{m × m}$ – $A$ is identity matrix
+    \item\label{zero} $C = \boldsymbol{0}_{k × m}$ – $C$ is zero matrix
 \end{enumerate}
 
+Steps \ref{diag} and \ref{zero} may be omited if you only need Schur complement (matrices D and F).
+
 \end{document}
-This is never printe
