@@ -30,8 +30,12 @@ void eliminate(double *matrix, double *rhs, int n, int m) {
   int k = n - m;
   char LapackNoTrans = 'N';
 
-  double *A = matrix, *B = matrix + m * n, *C = matrix + m,
-         *D = matrix + n * m + m, *E = rhs, *F = rhs + m;
+  double *A = matrix, 
+         *B = matrix + m * n, 
+         *C = matrix + m,
+         *D = matrix + n * m + m, 
+         *E = rhs,
+         *F = rhs + m;
 
   // 1: LU factorize A
   dgetrf_(
